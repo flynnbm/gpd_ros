@@ -1,11 +1,15 @@
 #include <gpd_ros/grasp_plotter.h>
+#include <std_msgs/msg/string.hpp>
 
-
-GraspPlotter::GraspPlotter(ros::NodeHandle& node, const gpd::candidate::HandGeometry& params)
+GraspPlotter::GraspPlotter(rclcpp::Node::SharedPtr& node, const gpd::candidate::HandGeometry& params)
 {
   std::string rviz_topic;
-  node.param("rviz_topic", rviz_topic, std::string(""));
-  rviz_pub_ = node.advertise<visualization_msgs::MarkerArray>(rviz_topic, 1);
+
+  const std::string rviz_topic =
+      node->declare_parameter<std::string>("rviz_topic", "");
+
+  rviz_pub_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(
+      rviz_topic, rclcpp::QoS(1).transient_local().reliable());
 
   hand_depth_ = params.depth_;
   hand_height_ = params.height_;
@@ -16,19 +20,19 @@ GraspPlotter::GraspPlotter(ros::NodeHandle& node, const gpd::candidate::HandGeom
 
 void GraspPlotter::drawGrasps(const std::vector<std::unique_ptr<gpd::candidate::Hand>>& hands, const std::string& frame)
 {
-  visualization_msgs::MarkerArray markers;
+  visualization_msgs::msg::MarkerArray markers;
   markers = convertToVisualGraspMsg(hands, frame);
   rviz_pub_.publish(markers);
 }
 
 
-visualization_msgs::MarkerArray GraspPlotter::convertToVisualGraspMsg(const std::vector<std::unique_ptr<gpd::candidate::Hand>>& hands,
+visualization_msgs::msg::MarkerArray GraspPlotter::convertToVisualGraspMsg(const std::vector<std::unique_ptr<gpd::candidate::Hand>>& hands,
   const std::string& frame_id)
 {
   double hw = 0.5*outer_diameter_ - 0.5*finger_width_;
 
-  visualization_msgs::MarkerArray marker_array;
-  visualization_msgs::Marker left_finger, right_finger, base, approach;
+  visualization_msgs::msg::MarkerArray marker_array;
+  visualization_msgs::msg::Marker left_finger, right_finger, base, approach;
   Eigen::Vector3d left_bottom, right_bottom, left_top, right_top, left_center, right_center, approach_center,
     base_center;
 
@@ -62,16 +66,16 @@ visualization_msgs::MarkerArray GraspPlotter::convertToVisualGraspMsg(const std:
 }
 
 
-visualization_msgs::Marker GraspPlotter::createFingerMarker(const Eigen::Vector3d& center,
+visualization_msgs::msg::Marker GraspPlotter::createFingerMarker(const Eigen::Vector3d& center,
   const Eigen::Matrix3d& frame, const Eigen::Vector3d& lwh, int id, const std::string& frame_id)
 {
-  visualization_msgs::Marker marker;
+  visualization_msgs::msg::Marker marker;
   marker.header.frame_id = frame_id;
   marker.header.stamp = ros::Time();
   marker.ns = "finger";
   marker.id = id;
-  marker.type = visualization_msgs::Marker::CUBE;
-  marker.action = visualization_msgs::Marker::ADD;
+  marker.type = visualization_msgs::msg::Marker::CUBE;
+  marker.action = visualization_msgs::msg::Marker::ADD;
   marker.pose.position.x = center(0);
   marker.pose.position.y = center(1);
   marker.pose.position.z = center(2);
