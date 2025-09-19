@@ -11,6 +11,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(pcl_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 
@@ -30,9 +31,17 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 add_library(grasp_messages SHARED
   src/gpd_ros/grasp_messages.cpp
 )
+add_library(grasp_plotter SHARED
+  src/gpd_ros/grasp_plotter.cpp
+)
 
 # Make your public headers available to dependents
 target_include_directories(grasp_messages
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_include_directories(grasp_plotter
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
@@ -43,6 +52,10 @@ ament_target_dependencies(grasp_messages
     geometry_msgs
     sensor_msgs
     tf2_eigen
+)
+ament_target_dependencies(grasp_plotter
+    sensor_msgs
+    visualization_msgs
 )
 
 # Ensure message headers/typesupport exist before building the library
@@ -55,6 +68,14 @@ install(TARGETS grasp_messages
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
 )
+
+install(TARGETS grasp_plotter
+  EXPORT export_${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
 install(DIRECTORY include/ DESTINATION include)
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(rosidl_default_runtime)
