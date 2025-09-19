@@ -20,6 +20,7 @@
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>pcl_msgs</depend>
+  <depend>tf2_eigen</depend>
 
   <!-- Mark as an interface package so tools can discover it -->
   <member_of_group>rosidl_interface_packages</member_of_group>
