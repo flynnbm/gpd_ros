@@ -1,10 +1,10 @@
 #include <gpd_ros/grasp_messages.h>
 #include <tf2_eigen/tf2_eigen.hpp>
 
-gpd_ros::GraspConfigList GraspMessages::createGraspListMsg(const std::vector<std::unique_ptr<gpd::candidate::Hand>>& hands, 
-                                                          const std_msgs::Header& header)
+gpd_ros::msg::GraspConfigList GraspMessages::createGraspListMsg(const std::vector<std::unique_ptr<gpd::candidate::Hand>>& hands, 
+                                                          const std_msgs::msg::Header& header)
 {
-  gpd_ros::GraspConfigList msg;
+  gpd_ros::msg::GraspConfigList msg;
 
   for (int i = 0; i < hands.size(); i++) {
     msg.grasps.push_back(convertToGraspMsg(*hands[i]));
@@ -15,9 +15,9 @@ gpd_ros::GraspConfigList GraspMessages::createGraspListMsg(const std::vector<std
   return msg;
 }
 
-gpd_ros::GraspConfig GraspMessages::convertToGraspMsg(const gpd::candidate::Hand& hand)
+gpd_ros::msg::GraspConfig GraspMessages::convertToGraspMsg(const gpd::candidate::Hand& hand)
 {
-  gpd_ros::GraspConfig msg;
+  gpd_ros::msg::GraspConfig msg;
 
   msg.position = tf2::toMsg(hand.getPosition());
   msg.approach = tf2::toMsg(hand.getApproach());
