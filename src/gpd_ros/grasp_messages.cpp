@@ -7,8 +7,9 @@ gpd_ros::msg::GraspConfigList GraspMessages::createGraspListMsg(const std::vecto
 {
   gpd_ros::msg::GraspConfigList msg;
 
-  for (int i = 0; i < hands.size(); i++) {
-    msg.grasps.push_back(convertToGraspMsg(*hands[i]));
+  msg.grasps.reserve(hands.size());
+  for (const auto& h : hands) {
+    msg.grasps.push_back(convertToGraspMsg(*h));
   }
 
   msg.header = header;
