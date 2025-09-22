@@ -8,8 +8,7 @@ GraspPlotter::GraspPlotter(rclcpp::Node::SharedPtr& node, const gpd::candidate::
   const std::string rviz_topic =
       node->declare_parameter<std::string>("rviz_topic", "");
 
-  rviz_pub_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(
-      rviz_topic, rclcpp::QoS(1).transient_local().reliable());
+  rviz_pub_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(rviz_topic, 10);
 
   hand_depth_ = params.depth_;
   hand_height_ = params.height_;
@@ -22,7 +21,7 @@ void GraspPlotter::drawGrasps(const std::vector<std::unique_ptr<gpd::candidate::
 {
   visualization_msgs::msg::MarkerArray markers;
   markers = convertToVisualGraspMsg(hands, frame);
-  rviz_pub_.publish(markers);
+  rviz_pub_->publish(markers);
 }
 
 
@@ -71,7 +70,7 @@ visualization_msgs::msg::Marker GraspPlotter::createFingerMarker(const Eigen::Ve
 {
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = frame_id;
-  marker.header.stamp = ros::Time();
+  marker.header.stamp = rclcpp::Time();
   marker.ns = "finger";
   marker.id = id;
   marker.type = visualization_msgs::msg::Marker::CUBE;
@@ -79,7 +78,7 @@ visualization_msgs::msg::Marker GraspPlotter::createFingerMarker(const Eigen::Ve
   marker.pose.position.x = center(0);
   marker.pose.position.y = center(1);
   marker.pose.position.z = center(2);
-  marker.lifetime = ros::Duration(10);
+  marker.lifetime = rclcpp::Duration(10, 0);
 
   // use orientation of hand frame
   Eigen::Quaterniond quat(frame);
@@ -102,23 +101,23 @@ visualization_msgs::msg::Marker GraspPlotter::createFingerMarker(const Eigen::Ve
 }
 
 
-visualization_msgs::Marker GraspPlotter::createHandBaseMarker(const Eigen::Vector3d& start,
+visualization_msgs::msg::Marker GraspPlotter::createHandBaseMarker(const Eigen::Vector3d& start,
   const Eigen::Vector3d& end, const Eigen::Matrix3d& frame, double length, double height, int id,
   const std::string& frame_id)
 {
   Eigen::Vector3d center = start + 0.5 * (end - start);
 
-  visualization_msgs::Marker marker;
+  visualization_msgs::msg::Marker marker;
   marker.header.frame_id = frame_id;
-  marker.header.stamp = ros::Time();
+  marker.header.stamp = rclcpp::Time();
   marker.ns = "hand_base";
   marker.id = id;
-  marker.type = visualization_msgs::Marker::CUBE;
-  marker.action = visualization_msgs::Marker::ADD;
+  marker.type = visualization_msgs::msg::Marker::CUBE;
+  marker.action = visualization_msgs::msg::Marker::ADD;
   marker.pose.position.x = center(0);
   marker.pose.position.y = center(1);
   marker.pose.position.z = center(2);
-  marker.lifetime = ros::Duration(10);
+  marker.lifetime = rclcpp::Duration(10, 0);
 
   // use orientation of hand frame
   Eigen::Quaterniond quat(frame);
