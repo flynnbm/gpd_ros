@@ -33,7 +33,7 @@ visualization_msgs::msg::MarkerArray GraspPlotter::convertToVisualGraspMsg(const
   Eigen::Vector3d left_bottom, right_bottom, left_top, right_top, left_center, right_center, approach_center,
     base_center;
 
-  for (int i = 0; i < hands.size(); i++)
+  for (std::size_t i = 0; i < hands.size(); i++)
   {
     left_bottom = hands[i]->getPosition() - hw * hands[i]->getBinormal();
     right_bottom = hands[i]->getPosition() + hw * hands[i]->getBinormal();
