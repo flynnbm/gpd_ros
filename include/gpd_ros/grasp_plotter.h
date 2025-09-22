@@ -33,6 +33,9 @@
 #ifndef GRASP_PLOTTER_H_
 #define GRASP_PLOTTER_H_
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
 // ROS
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
