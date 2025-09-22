@@ -14,6 +14,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(pcl_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(eigen3_cmake_module REQUIRED) 
+find_package(Eigen3 REQUIRED)
 
 # Generate messages
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -59,6 +61,9 @@ ament_target_dependencies(grasp_plotter
     sensor_msgs
     visualization_msgs
 )
+
+# Eigen is a plain CMake package: link its IMPORTED target
+target_link_libraries(grasp_plotter Eigen3::Eigen)
 
 # Ensure message headers/typesupport exist before building the library
 rosidl_target_interfaces(grasp_messages ${PROJECT_NAME} "rosidl_typesupport_cpp")
