@@ -54,6 +54,8 @@ ament_target_dependencies(grasp_messages
     tf2_eigen
 )
 ament_target_dependencies(grasp_plotter
+    rclcpp
+    std_msgs
     sensor_msgs
     visualization_msgs
 )
