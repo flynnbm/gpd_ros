@@ -4,7 +4,7 @@
 GraspPlotter::GraspPlotter(rclcpp::Node::SharedPtr& node, const gpd::candidate::HandGeometry& params)
 {
   const std::string rviz_topic =
-      node->declare_parameter<std::string>("rviz_topic", "");
+      node->declare_parameter<std::string>("rviz_topic", "grasp_markers");
 
   rviz_pub_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(rviz_topic, 10);
 
