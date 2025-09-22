@@ -110,7 +110,7 @@ public:
 
 private:
 
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rviz_pub_; ///< ROS publisher for grasps in rviz (visualization)
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr rviz_pub_; ///< ROS publisher for grasps in rviz (visualization)
 
   double outer_diameter_;
   double hand_depth_;
