@@ -33,24 +33,34 @@
 #ifndef GRASP_DETECTION_SERVER_H_
 #define GRASP_DETECTION_SERVER_H_
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 // ROS
-#include <eigen_conversions/eigen_msg.h>
+#include <rclcpp/rclcpp.hpp>
+#include <visualization_msgs/msg/marker.h>
+#include <visualization_msgs/msg/marker_array.h>
+#include <std_msgs/msg/header.hpp>
+
+// PCL
 #include <pcl_conversions/pcl_conversions.h>
-#include <ros/ros.h>
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 
 // GPD
 #include <gpd/util/cloud.h>
 #include <gpd/grasp_detector.h>
 
 // this project (services)
-#include <gpd_ros/detect_grasps.h>
+#include <gpd_ros/srv/detect_grasps.hpp>
 
 // this project (messages)
-#include <gpd_ros/GraspConfig.h>
-#include <gpd_ros/GraspConfigList.h>
+#include <gpd_ros/msg/grasp_config.hpp>
+#include <gpd_ros/msg/grasp_config_list.hpp>
 
 // this project (headers)
 #include <gpd_ros/grasp_messages.h>
@@ -67,7 +77,7 @@ public:
    * \brief Constructor.
    * \param node the ROS node
   */
-  GraspDetectionServer(ros::NodeHandle& node);
+  GraspDetectionServer(rclcpp::Node::SharedPtr& node);
 
   /**
    * \brief Destructor.
@@ -84,14 +94,15 @@ public:
    * \param req the service request
    * \param res the service response
    */
-  bool detectGrasps(gpd_ros::detect_grasps::Request& req, gpd_ros::detect_grasps::Response& res);
+  bool detectGrasps(gpd_ros::srv::DetectGrasps::Request& req, gpd_ros::srv::DetectGrasps::Response& res);
 
 
 private:
 
-  ros::Publisher grasps_pub_; ///< ROS publisher for grasp list messages
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Publisher<gpd_ros::msg::GraspConfigList>::SharedPtr grasps_pub_;
 
-  std_msgs::Header cloud_camera_header_; ///< stores header of the point cloud
+  std_msgs::msg::Header cloud_camera_header_; ///< stores header of the point cloud
   std::string frame_; ///< point cloud frame
 
   gpd::GraspDetector* grasp_detector_; ///< used to run the grasp pose detection
