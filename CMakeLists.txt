@@ -19,7 +19,6 @@ find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
-
 find_library(GPD_LIB NAMES gpd PATHS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu)
 
 # Generate messages
@@ -105,7 +104,10 @@ rosidl_target_interfaces(grasp_detection_server ${PROJECT_NAME} "rosidl_typesupp
 # target_link_libraries(grasp_detection_server ${cpp_typesupport_target})
 
 # Install targets and headers
-install(TARGETS grasp_messages grasp_plotter grasp_detection_server
+install(TARGETS 
+  grasp_messages 
+  grasp_plotter 
+  grasp_detection_server
   EXPORT export_${PROJECT_NAME}
   RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION lib
