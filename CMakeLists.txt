@@ -13,9 +13,14 @@ find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(pcl_msgs REQUIRED)
+find_package(pcl_conversions REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(eigen3_cmake_module REQUIRED) 
 find_package(Eigen3 REQUIRED)
+find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
+
+find_library(GPD_LIB NAMES gpd PATHS /usr/local/lib /usr/lib /usr/lib/x86_64-linux-gnu)
 
 # Generate messages
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -29,31 +34,35 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES geometry_msgs std_msgs  sensor_msgs
 )
 
-# Build custom libraries
+# Build grasp_messages library
 add_library(grasp_messages SHARED
   src/gpd_ros/grasp_messages.cpp
 )
-add_library(grasp_plotter SHARED
-  src/gpd_ros/grasp_plotter.cpp
-)
-
-# Make your public headers available to dependents
 target_include_directories(grasp_messages
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-target_include_directories(grasp_plotter
-  PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-)
-
 ament_target_dependencies(grasp_messages
     std_msgs
     geometry_msgs
     sensor_msgs
     tf2_eigen
+)
+# Ensure message headers/typesupport exist before building the library
+rosidl_target_interfaces(grasp_messages ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+# rosidl_get_typesupport_target(grasp_messages ${PROJECT_NAME} "rosidl_typesupport_cpp")
+# target_link_libraries(grasp_messages ${cpp_typesupport_target})
+
+# Build grasp_plotter library
+add_library(grasp_plotter SHARED
+  src/gpd_ros/grasp_plotter.cpp
+)
+target_include_directories(grasp_plotter
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(grasp_plotter
     rclcpp
@@ -61,31 +70,48 @@ ament_target_dependencies(grasp_plotter
     sensor_msgs
     visualization_msgs
 )
-
 # Eigen is a plain CMake package: link its IMPORTED target
 target_link_libraries(grasp_plotter Eigen3::Eigen)
 
-# Ensure message headers/typesupport exist before building the library
-rosidl_target_interfaces(grasp_messages ${PROJECT_NAME} "rosidl_typesupport_cpp")
+# Add grasp_detection_server executable
+add_executable(grasp_detection_server
+  src/gpd_ros/grasp_detection_server.cpp
+)
+target_include_directories(grasp_detection_server PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(grasp_detection_server
+    grasp_messages
+    grasp_plotter
+    Eigen3::Eigen
+    ${PCL_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${GPD_LIB}
+)
+ament_target_dependencies(grasp_detection_server
+  rclcpp
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+  visualization_msgs
+  tf2_eigen
+  pcl_conversions
+)
+# Uses generated srv/msg types
+rosidl_target_interfaces(grasp_detection_server ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
-# Install and export libraries
-install(TARGETS grasp_messages
+# rosidl_get_typesupport_target(grasp_detection_server ${PROJECT_NAME} "rosidl_typesupport_cpp")
+# target_link_libraries(grasp_detection_server ${cpp_typesupport_target})
+
+# Install targets and headers
+install(TARGETS grasp_messages grasp_plotter grasp_detection_server
   EXPORT export_${PROJECT_NAME}
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
 )
-
-install(TARGETS grasp_plotter
-  EXPORT export_${PROJECT_NAME}
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
 install(DIRECTORY include/ DESTINATION include)
-ament_export_targets(export_${PROJECT_NAME})
-ament_export_dependencies(rosidl_default_runtime)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -99,5 +125,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-# No libraries or executables to build or install.
+# Export for downstreams (make targets discoverable by other packages)
+ament_export_targets(export_${PROJECT_NAME})
+ament_export_dependencies(rosidl_default_runtime)
 ament_package()
