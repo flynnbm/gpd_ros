@@ -26,7 +26,7 @@ GraspDetectionServer::GraspDetectionServer(rclcpp::Node::SharedPtr& node) :
 
   // rviz plotter (enabled only if a topic is provided)
   const std::string rviz_topic =
-      node_->declare_parameter<std::string>("rviz_topic", "");
+      node_->declare_parameter<std::string>("rviz_topic", "grasp_markers");
   if (!rviz_topic.empty()) {
     rviz_plotter_ = new GraspPlotter(
         node_, grasp_detector_->getHandSearchParameters().hand_geometry_);
