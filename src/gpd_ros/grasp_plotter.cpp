@@ -3,8 +3,8 @@
 
 GraspPlotter::GraspPlotter(rclcpp::Node::SharedPtr& node, const gpd::candidate::HandGeometry& params)
 {
-  const std::string rviz_topic =
-      node->declare_parameter<std::string>("rviz_topic", "grasp_markers");
+  std::string rviz_topic = "grasp_markers";
+  (void) node->get_parameter("rviz_topic", rviz_topic);
 
   rviz_pub_ = node->create_publisher<visualization_msgs::msg::MarkerArray>(rviz_topic, 10);
 
