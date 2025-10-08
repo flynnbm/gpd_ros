@@ -1,0 +1,4 @@
+gpd_ros/GraspConfigList grasps
+---
+geometry_msgs/Pose[] target_poses
+geometry_msgs/Pose[] approach_poses
