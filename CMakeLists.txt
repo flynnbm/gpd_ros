@@ -30,7 +30,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/GraspConfigList.msg"
   "msg/SamplesMsg.msg"
   "srv/DetectGrasps.srv"
-  DEPENDENCIES geometry_msgs std_msgs  sensor_msgs
+  "srv/ComputeGraspPoses.srv"
+  DEPENDENCIES 
+    geometry_msgs 
+    std_msgs  
+    sensor_msgs
 )
 
 # Build grasp_messages library
@@ -100,14 +104,25 @@ ament_target_dependencies(grasp_detection_server
 # Uses generated srv/msg types
 rosidl_target_interfaces(grasp_detection_server ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
-# rosidl_get_typesupport_target(grasp_detection_server ${PROJECT_NAME} "rosidl_typesupport_cpp")
-# target_link_libraries(grasp_detection_server ${cpp_typesupport_target})
+add_executable(grasp_pose_server 
+  src/gpd_ros/grasp_pose_server.cpp
+)
+ament_target_dependencies(grasp_pose_server
+  geometry_msgs
+  tf2_ros
+  tf2_eigen
+)
+target_link_libraries(grasp_pose_server
+    Eigen3::Eigen
+)
+rosidl_target_interfaces(grasp_pose_server ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 # Install targets and headers
 install(TARGETS 
   grasp_messages 
   grasp_plotter 
   grasp_detection_server
+  grasp_pose_server
   EXPORT export_${PROJECT_NAME}
   RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION lib
