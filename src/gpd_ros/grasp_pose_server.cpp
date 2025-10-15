@@ -22,12 +22,12 @@ public:
     tf_listener_(tf_buffer_)
   {
     // Parameters
-    double gripper_offset_ = this->declare_parameter<double>("gripper_offset", -0.02);
-    double approach_dist_ = this->declare_parameter<double>("approach_dist", 0.10);
+    double gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.0);
+    double approach_dist_ = this->declare_parameter<double>("approach_dist", 0.0);
 
     double grasp_rot_x_ = this->declare_parameter<double>("grasp_rot_x", 0.0);
-    double grasp_rot_y_ = this->declare_parameter<double>("grasp_rot_y", 0.39269908169);
-    double grasp_rot_z_ = this->declare_parameter<double>("grasp_rot_z", -0.981747704);
+    double grasp_rot_y_ = this->declare_parameter<double>("grasp_rot_y", 0.0);
+    double grasp_rot_z_ = this->declare_parameter<double>("grasp_rot_z", 0.0);
     double grasp_rot_w_ = this->declare_parameter<double>("grasp_rot_w", 1.0);
 
     std::string target_frame_ = this->declare_parameter<std::string>("target_frame", "base_link");
@@ -90,7 +90,8 @@ private:
         T_grasp_source.translation() = Eigen::Vector3d(g.position.x, g.position.y, g.position.z);
 
         // Compose final pose in target frame
-        const Eigen::Isometry3d T_target_grasp = T_target_source * T_grasp_source * T_offset;
+        // const Eigen::Isometry3d T_target_grasp = T_target_source * T_grasp_source * T_offset;
+        const Eigen::Isometry3d T_target_grasp = T_grasp_source * T_offset;
 
         geometry_msgs::msg::Pose target_pose_msg;
         const Eigen::Quaterniond q(T_target_grasp.linear());
