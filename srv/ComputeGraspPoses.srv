@@ -1,5 +1,5 @@
 gpd_ros/GraspConfigList grasps
 ---
-geometry_msgs/Pose[] target_poses
-geometry_msgs/Pose[] approach_poses
-geometry_msgs/Pose[] retreat_poses
+geometry_msgs/PoseStamped[] target_poses
+geometry_msgs/PoseStamped[] approach_poses
+geometry_msgs/PoseStamped[] retreat_poses
