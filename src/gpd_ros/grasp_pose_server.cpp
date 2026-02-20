@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
-#include <geometry_msgs/msg/pose.hpp>
+// #include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <gpd_ros/msg/grasp_config_list.hpp>
 #include <gpd_ros/msg/grasp_config.hpp>
@@ -21,8 +22,9 @@ public:
     tf_buffer_(this->get_clock()),
     tf_listener_(tf_buffer_)
   {
-    // NOTE: assign to members, don't redeclare with 'double'/'std::string' here.
-    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.0);
+    // Parameter defaults
+    // gripper_offset_ can be the distance from the base of the wrist to the tcp if not already accounted for
+    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.00);       // techbnical drawing panda hand to finger center
     this->approach_dist_  = this->declare_parameter<double>("approach_dist",  0.10);
     this->retreat_dist_   = this->declare_parameter<double>("retreat_dist",   0.10);
 
@@ -41,13 +43,34 @@ public:
   }
 
 private:
+  // Helper: make a PoseStamped from an Isometry, with consistent header
+  geometry_msgs::msg::PoseStamped stampPose_(
+      const Eigen::Isometry3d& T,
+      const std::string& frame_id,
+      const rclcpp::Time& stamp) const
+  {
+    geometry_msgs::msg::PoseStamped pose_stamped;
+    pose_stamped.header.frame_id = frame_id;
+    pose_stamped.header.stamp = stamp;
+
+    const Eigen::Quaterniond q(T.linear());
+    pose_stamped.pose.position.x = T.translation().x();
+    pose_stamped.pose.position.y = T.translation().y();
+    pose_stamped.pose.position.z = T.translation().z();
+    pose_stamped.pose.orientation.x = q.x();
+    pose_stamped.pose.orientation.y = q.y();
+    pose_stamped.pose.orientation.z = q.z();
+    pose_stamped.pose.orientation.w = q.w();
+    return pose_stamped;
+  }
+
   void handle_request(const std::shared_ptr<rmw_request_id_t> /*request_header*/,
                       const std::shared_ptr<ComputeGraspPoses::Request> req,
                       std::shared_ptr<ComputeGraspPoses::Response> res)
   {
     RCLCPP_INFO(this->get_logger(), "Received /compute_grasp_poses service call");
 
-    // target <- source
+    // lookup transform to target_frame from source_frame
     geometry_msgs::msg::TransformStamped T_target_source_msg;
     try {
       T_target_source_msg = tf_buffer_.lookupTransform(
@@ -59,11 +82,17 @@ private:
     }
     const Eigen::Isometry3d T_target_source = tf2::transformToEigen(T_target_source_msg.transform);
 
-    // TCP & orientation offset
+    // generate output time stamp
+    rclcpp::Time out_stamp = T_target_source_msg.header.stamp;
+    if (out_stamp.nanoseconds() == 0) {
+      out_stamp = this->now();
+    }
+
+    // generate initial offset transform from parameters
     const Eigen::Quaterniond q_offset(grasp_rot_w_, grasp_rot_x_, grasp_rot_y_, grasp_rot_z_);
     Eigen::Isometry3d T_offset = Eigen::Isometry3d::Identity();
     T_offset.linear() = q_offset.toRotationMatrix();
-    T_offset.translation() = Eigen::Vector3d(0, 0, -gripper_offset_);
+    T_offset.translation() = Eigen::Vector3d(0, 0, gripper_offset_);
 
     res->target_poses.clear();
     res->approach_poses.clear();
@@ -83,60 +112,26 @@ private:
         double n = R_grasp_source.col(c).norm();
         if (n > 1e-9) R_grasp_source.col(c) /= n;
       }
+
       Eigen::Isometry3d T_grasp_source = Eigen::Isometry3d::Identity();
       T_grasp_source.linear() = R_grasp_source;
       T_grasp_source.translation() = Eigen::Vector3d(g.position.x, g.position.y, g.position.z);
 
-      // FINAL grasp pose in TARGET frame (so +Z is "up" in robot/world frame)
+      // grasp pose in target's frame
       const Eigen::Isometry3d T_target_grasp = T_target_source * T_grasp_source * T_offset;
 
       // Target pose
-      geometry_msgs::msg::Pose target_pose_msg;
-      {
-        const Eigen::Quaterniond q(T_target_grasp.linear());
-        target_pose_msg.position.x = T_target_grasp.translation().x();
-        target_pose_msg.position.y = T_target_grasp.translation().y();
-        target_pose_msg.position.z = T_target_grasp.translation().z();
-        target_pose_msg.orientation.x = q.x();
-        target_pose_msg.orientation.y = q.y();
-        target_pose_msg.orientation.z = q.z();
-        target_pose_msg.orientation.w = q.w();
-      }
-      res->target_poses.push_back(target_pose_msg);
+      res->target_poses.push_back( stampPose_(T_target_grasp, target_frame_, out_stamp) );
 
-      // Approach pose: back along tool Z (negative z in grasp frame; already done)
-      Eigen::Isometry3d T_target_approach =
+      // Approach pose: back along tool Z axis
+      const Eigen::Isometry3d T_target_approach =
           T_target_grasp * Eigen::Translation3d(0.0, 0.0, -approach_dist_);
-      geometry_msgs::msg::Pose approach_msg;
-      {
-        const Eigen::Quaterniond qa(T_target_approach.linear());
-        approach_msg.position.x = T_target_approach.translation().x();
-        approach_msg.position.y = T_target_approach.translation().y();
-        approach_msg.position.z = T_target_approach.translation().z();
-        approach_msg.orientation.x = qa.x();
-        approach_msg.orientation.y = qa.y();
-        approach_msg.orientation.z = qa.z();
-        approach_msg.orientation.w = qa.w();
-      }
-      res->approach_poses.push_back(approach_msg);
+      res->approach_poses.push_back( stampPose_(T_target_approach, target_frame_, out_stamp) );
 
-      // NEW: Retreat pose — straight UP in TARGET frame (+Z of world/robot)
+      // Retreat pose: straight up along robot frame Z axis
       Eigen::Isometry3d T_target_retreat = T_target_grasp;
       T_target_retreat.translate(Eigen::Vector3d(0.0, 0.0, retreat_dist_));
-
-      geometry_msgs::msg::Pose retreat_msg;
-      {
-        // Keep the same orientation as the grasp (usually desired)
-        const Eigen::Quaterniond qr(T_target_retreat.linear());
-        retreat_msg.position.x = T_target_retreat.translation().x();
-        retreat_msg.position.y = T_target_retreat.translation().y();
-        retreat_msg.position.z = T_target_retreat.translation().z();
-        retreat_msg.orientation.x = qr.x();
-        retreat_msg.orientation.y = qr.y();
-        retreat_msg.orientation.z = qr.z();
-        retreat_msg.orientation.w = qr.w();
-      }
-      res->retreat_poses.push_back(retreat_msg);
+      res->retreat_poses.push_back( stampPose_(T_target_retreat, target_frame_, out_stamp) );
     }
   }
 
