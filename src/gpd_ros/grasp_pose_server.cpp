@@ -23,8 +23,7 @@ public:
     tf_listener_(tf_buffer_)
   {
     // Parameter defaults
-    // gripper_offset_ can be the distance from the base of the wrist to the tcp if not already accounted for
-    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.00);       // techbnical drawing panda hand to finger center
+    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.10);
     this->approach_dist_  = this->declare_parameter<double>("approach_dist",  0.10);
     this->retreat_dist_   = this->declare_parameter<double>("retreat_dist",   0.10);
 
