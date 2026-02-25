@@ -23,7 +23,7 @@ public:
     tf_listener_(tf_buffer_)
   {
     // Parameter defaults
-    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.10);
+    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.00);
     this->approach_dist_  = this->declare_parameter<double>("approach_dist",  0.10);
     this->retreat_dist_   = this->declare_parameter<double>("retreat_dist",   0.10);
 
