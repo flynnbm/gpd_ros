@@ -69,14 +69,26 @@ private:
   {
     RCLCPP_INFO(this->get_logger(), "Received /compute_grasp_poses service call");
 
-    // lookup transform to target_frame from source_frame
+    // The grasp coordinates are expressed in the frame recorded by GPD in the
+    // GraspConfigList header. Keep source_frame_ only as a compatibility
+    // fallback for callers that do not populate the header.
+    const std::string grasp_source_frame = req->grasps.header.frame_id.empty()
+        ? source_frame_
+        : req->grasps.header.frame_id;
+    if (req->grasps.header.frame_id.empty()) {
+      RCLCPP_WARN(get_logger(),
+                  "GraspConfigList header.frame_id is empty; falling back to configured source_frame '%s'",
+                  source_frame_.c_str());
+    }
+
+    // lookup transform to target_frame from the frame containing the grasps
     geometry_msgs::msg::TransformStamped T_target_source_msg;
     try {
       T_target_source_msg = tf_buffer_.lookupTransform(
-        target_frame_, source_frame_, tf2::TimePointZero);
+        target_frame_, grasp_source_frame, tf2::TimePointZero);
     } catch (const tf2::TransformException &ex) {
       RCLCPP_ERROR(get_logger(), "TF lookup failed (%s <- %s): %s",
-                   target_frame_.c_str(), source_frame_.c_str(), ex.what());
+                   target_frame_.c_str(), grasp_source_frame.c_str(), ex.what());
       return;
     }
     const Eigen::Isometry3d T_target_source = tf2::transformToEigen(T_target_source_msg.transform);
