@@ -102,7 +102,11 @@ bool GraspDetectionServer::detectGrasps(gpd_ros::srv::DetectGrasps::Request& req
   }
   cloud_camera_->setSampleIndices(indices);
 
-  frame_ = req.cloud_indexed.cloud_sources.cloud.header.frame_id;
+  // Grasps are expressed in the point cloud frame. Preserve the complete
+  // acquisition header so downstream transformations use the exact source
+  // frame associated with this detection result.
+  cloud_camera_header_ = req.cloud_indexed.cloud_sources.cloud.header;
+  frame_ = cloud_camera_header_.frame_id;
 
   RCLCPP_INFO_STREAM(node_->get_logger(), "Received cloud with " << cloud_camera_->getCloudProcessed()->size() << " points, and "
     << req.cloud_indexed.indices.size() << " samples");
