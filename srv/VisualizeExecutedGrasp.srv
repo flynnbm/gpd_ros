@@ -1,0 +1,6 @@
+gpd_ros/GraspConfigList grasp_configs
+geometry_msgs/PoseStamped transformed_target
+uint32 selected_index
+---
+bool success
+string message
