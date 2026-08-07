@@ -1,5 +1,4 @@
 #include <rclcpp/rclcpp.hpp>
-// #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <gpd_ros/msg/grasp_config_list.hpp>
@@ -23,7 +22,7 @@ public:
     tf_listener_(tf_buffer_)
   {
     // Parameter defaults
-    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", -0.10);
+    this->gripper_offset_ = this->declare_parameter<double>("gripper_offset", 0.0);
     this->approach_dist_  = this->declare_parameter<double>("approach_dist",  0.10);
     this->retreat_dist_   = this->declare_parameter<double>("retreat_dist",   0.10);
 
@@ -42,6 +41,19 @@ public:
   }
 
 private:
+  Eigen::Matrix3d makeToolOrientation_(
+      const Eigen::Vector3d& gpd_approach,
+      const Eigen::Vector3d& gpd_binormal) const
+  {
+    // This robot's gripper closes along TCP +X and approaches along TCP +Z.
+    // GPD's binormal is its finger-closing direction.
+    Eigen::Matrix3d orientation;
+    orientation.col(0) = gpd_binormal.normalized();
+    orientation.col(2) = gpd_approach.normalized();
+    orientation.col(1) = orientation.col(2).cross(orientation.col(0)).normalized();
+    return orientation;
+  }
+
   // Helper: make a PoseStamped from an Isometry, with consistent header
   geometry_msgs::msg::PoseStamped stampPose_(
       const Eigen::Isometry3d& T,
@@ -114,15 +126,12 @@ private:
 
     for (const auto &g : req->grasps.grasps)
     {
-      // Build grasp pose in SOURCE frame from GPD axes
-      Eigen::Matrix3d R_grasp_source;
-      R_grasp_source.col(0) = Eigen::Vector3d(-g.axis.x,    -g.axis.y,    -g.axis.z);
-      R_grasp_source.col(1) = Eigen::Vector3d( g.binormal.x, g.binormal.y, g.binormal.z);
-      R_grasp_source.col(2) = Eigen::Vector3d( g.approach.x, g.approach.y, g.approach.z);
-      for (int c = 0; c < 3; ++c) {
-        double n = R_grasp_source.col(c).norm();
-        if (n > 1e-9) R_grasp_source.col(c) /= n;
-      }
+      // Map GPD semantics into this robot's fixed TCP convention: GPD binormal
+      // -> tool +X (finger closing), GPD approach -> tool +Z, and derive tool
+      // +Y to keep a right-handed frame.
+      const Eigen::Matrix3d R_grasp_source = makeToolOrientation_(
+        Eigen::Vector3d(g.approach.x, g.approach.y, g.approach.z),
+        Eigen::Vector3d(g.binormal.x, g.binormal.y, g.binormal.z));
 
       Eigen::Isometry3d T_grasp_source = Eigen::Isometry3d::Identity();
       T_grasp_source.linear() = R_grasp_source;
@@ -150,7 +159,6 @@ private:
   double gripper_offset_{0.0}, approach_dist_{0.0}, retreat_dist_{0.0};
   double grasp_rot_x_{0.0}, grasp_rot_y_{0.0}, grasp_rot_z_{0.0}, grasp_rot_w_{1.0};
   std::string target_frame_{"base_link"}, source_frame_{"camera_link"};
-
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
   rclcpp::Service<ComputeGraspPoses>::SharedPtr service_;
